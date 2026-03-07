@@ -628,7 +628,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 - GitHub : [github.com/theobawana](https://github.com/theobawana)
 - Email : theodore8bawana@gmail.com
 
-*Projet réalisé dans le cadre d'une mission chez **SAHELYS**.*
+*Projet réalisé dans le cadre d'apprentissage de la vision par ordinateur*
 
 ---
 
