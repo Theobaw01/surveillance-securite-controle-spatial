@@ -1,0 +1,99 @@
+version: "3.8"
+
+services:
+  # ══════════════════════════════════════════════════════════
+  # Surveillance-IA Services
+  # ══════════════════════════════════════════════════════════
+
+  # ── PostgreSQL Database ──
+  db:
+    image: postgres:15-alpine
+    container_name: surv-db
+    environment:
+      POSTGRES_USER: surv_user
+      POSTGRES_PASSWORD: surv_pass
+      POSTGRES_DB: surveillance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - surv_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U surv_user -d surveillance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Surveillance API (FastAPI + WebSockets) ──
+  api:
+    build:
+      context: .
+      target: surv-api
+    container_name: surv-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://surv_user:surv_pass@db:5432/surveillance_db
+      - MODEL_PATH=models/finetuned/best.pt
+      - SECRET_KEY=${SECRET_KEY:-surveillance-ia-secret-key-2024}
+    volumes:
+      - ./models/finetuned:/app/models/finetuned
+      - ./data/splits:/app/data/splits
+      - ./reports:/app/reports
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Surveillance Dashboard (Streamlit) ──
+  dashboard:
+    build:
+      context: .
+      target: surv-dashboard
+    container_name: surv-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── Surveillance API GPU (optional) ──
+  api-gpu:
+    build:
+      context: .
+      target: surv-gpu
+    container_name: surv-api-gpu
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://surv_user:surv_pass@db:5432/surveillance_db
+      - MODEL_PATH=models/finetuned/best.pt
+      - SECRET_KEY=${SECRET_KEY:-surveillance-ia-secret-key-2024}
+      - DEVICE=cuda
+    volumes:
+      - ./models/finetuned:/app/models/finetuned
+      - ./data/splits:/app/data/splits
+      - ./reports:/app/reports
+    depends_on:
+      db:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - gpu
+
+volumes:
+  surv_pgdata:

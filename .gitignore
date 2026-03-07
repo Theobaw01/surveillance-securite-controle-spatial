@@ -1,0 +1,48 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+venv/
+myenv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Models (large files)
+models/*.pt
+models/*.bin
+models/*.safetensors
+models/finetuned/
+
+# Data
+data/raw/
+data/splits/
+data/*.db
+*.zip
+
+# Outputs
+outputs/
+
+# Reports
+reports/*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wandb/
+runs/
+tensorboard/
+
+# Distribution
+dist/
+*.egg-info/
+build/
