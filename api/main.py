@@ -471,6 +471,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ─── Enregistrer les routes personnes & détection ──────────
+try:
+    from api.routes_persons import router as persons_router
+    app.include_router(persons_router)
+    logger.info("✅ Routes /persons et /detect chargées")
+except ImportError as e:
+    logger.warning(f"⚠️ Routes personnes non disponibles : {e}")
+
 
 # ─── ROUTES ─────────────────────────────────────────────────────
 
