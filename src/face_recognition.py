@@ -19,7 +19,7 @@ import logging
 import sqlite3
 import pickle
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
@@ -653,6 +653,159 @@ class FaceDatabase:
             "taux_presence": round(
                 (row["total_present"] or 0) / max(total_inscrits, 1) * 100, 1
             ),
+        }
+
+    def get_person_attendance_history(
+        self, person_id: str, date_from: str = None, date_to: str = None
+    ) -> Dict:
+        """
+        Historique détaillé de présence pour une personne sur une période.
+        Retourne les entrées/sorties jour par jour pour construire des graphiques.
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        date_from = date_from or (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        date_to = date_to or today
+
+        person = self._persons_cache.get(person_id, {})
+        if not person:
+            return {"error": "Personne non trouvée", "person_id": person_id}
+
+        cursor = self.conn.execute(
+            """SELECT * FROM attendance
+               WHERE person_id = ?
+               AND datetime_str >= ? AND datetime_str <= ?
+               ORDER BY timestamp ASC""",
+            (person_id, date_from, date_to + " 23:59:59"),
+        )
+        rows = [dict(r) for r in cursor.fetchall()]
+
+        # Grouper par jour
+        from collections import defaultdict
+        by_day: Dict[str, list] = defaultdict(list)
+        for r in rows:
+            day = r["datetime_str"][:10]
+            by_day[day].append(r)
+
+        daily_records = []
+        # Remplir tous les jours de la période (même sans données)
+        current = datetime.strptime(date_from, "%Y-%m-%d")
+        end = datetime.strptime(date_to, "%Y-%m-%d")
+        while current <= end:
+            day_str = current.strftime("%Y-%m-%d")
+            day_events = by_day.get(day_str, [])
+
+            entries = [e for e in day_events if e["direction"] == "entry"]
+            exits = [e for e in day_events if e["direction"] == "exit"]
+
+            # Construire les segments de présence (entrée → sortie) avec interruptions
+            segments = []
+            if day_events:
+                sorted_events = sorted(day_events, key=lambda x: x["timestamp"])
+                seg_start = None
+                for evt in sorted_events:
+                    if evt["direction"] == "entry":
+                        if seg_start is None:
+                            seg_start = evt
+                    elif evt["direction"] == "exit":
+                        if seg_start is not None:
+                            segments.append({
+                                "entry_time": seg_start["datetime_str"],
+                                "exit_time": evt["datetime_str"],
+                                "entry_ts": seg_start["timestamp"],
+                                "exit_ts": evt["timestamp"],
+                                "duration_sec": round(evt["timestamp"] - seg_start["timestamp"], 1),
+                            })
+                            seg_start = None
+                        else:
+                            # exit sans entry — segment artificiel
+                            segments.append({
+                                "entry_time": None,
+                                "exit_time": evt["datetime_str"],
+                                "entry_ts": None,
+                                "exit_ts": evt["timestamp"],
+                                "duration_sec": 0,
+                            })
+                # Si un segment est ouvert (entry sans exit correspondant)
+                if seg_start is not None:
+                    segments.append({
+                        "entry_time": seg_start["datetime_str"],
+                        "exit_time": None,
+                        "entry_ts": seg_start["timestamp"],
+                        "exit_ts": None,
+                        "duration_sec": 0,
+                    })
+
+            total_duration = sum(s["duration_sec"] for s in segments)
+
+            if entries or exits:
+                first_entry = entries[0] if entries else None
+                last_exit = exits[-1] if exits else None
+
+                daily_records.append({
+                    "date": day_str,
+                    "present": True,
+                    "first_entry_time": first_entry["datetime_str"] if first_entry else None,
+                    "last_exit_time": last_exit["datetime_str"] if last_exit else None,
+                    "duration_sec": round(total_duration, 1),
+                    "duration_hours": round(total_duration / 3600, 2),
+                    "entries_count": len(entries),
+                    "exits_count": len(exits),
+                    "is_late": first_entry.get("is_late", 0) == 1 if first_entry else False,
+                    "retard_minutes": first_entry.get("retard_minutes", 0) if first_entry else 0,
+                    "segments": segments,
+                    "events": [
+                        {
+                            "direction": e["direction"],
+                            "time": e["datetime_str"],
+                            "timestamp": e["timestamp"],
+                        }
+                        for e in sorted(day_events, key=lambda x: x["timestamp"])
+                    ],
+                })
+            else:
+                daily_records.append({
+                    "date": day_str,
+                    "present": False,
+                    "first_entry_time": None,
+                    "last_exit_time": None,
+                    "duration_sec": 0,
+                    "duration_hours": 0,
+                    "entries_count": 0,
+                    "exits_count": 0,
+                    "is_late": False,
+                    "retard_minutes": 0,
+                    "segments": [],
+                    "events": [],
+                })
+            current += timedelta(days=1)
+
+        # Résumé
+        days_present = sum(1 for d in daily_records if d["present"])
+        total_days = len(daily_records)
+        total_duration = sum(d["duration_sec"] for d in daily_records)
+        avg_duration = total_duration / max(days_present, 1)
+        total_late = sum(1 for d in daily_records if d["is_late"])
+
+        return {
+            "person_id": person_id,
+            "nom": person.get("nom", ""),
+            "prenom": person.get("prenom", ""),
+            "groupe": person.get("groupe", ""),
+            "role": person.get("role", ""),
+            "date_from": date_from,
+            "date_to": date_to,
+            "summary": {
+                "total_days": total_days,
+                "days_present": days_present,
+                "days_absent": total_days - days_present,
+                "taux_presence": round(days_present / max(total_days, 1) * 100, 1),
+                "total_duration_sec": round(total_duration, 1),
+                "avg_duration_sec": round(avg_duration, 1),
+                "avg_duration_hours": round(avg_duration / 3600, 2),
+                "total_late": total_late,
+            },
+            "daily": daily_records,
+            "raw_records": rows,
         }
 
     def identify(

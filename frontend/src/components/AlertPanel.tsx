@@ -20,7 +20,7 @@ function getAlertIcon(type: string) {
     return <AlertTriangle className="w-4 h-4 text-red-400" />;
   if (type.includes("warning"))
     return <Bell className="w-4 h-4 text-yellow-400" />;
-  return <CheckCircle className="w-4 h-4 text-blue-400" />;
+  return <CheckCircle className="w-4 h-4 text-blue-500" />;
 }
 
 export default function AlertPanel({ alerts }: Props) {
@@ -31,7 +31,7 @@ export default function AlertPanel({ alerts }: Props) {
           <Bell className="w-4 h-4" />
           Alertes
         </h3>
-        <p className="text-sm text-gray-500">Aucune alerte active</p>
+        <p className="text-sm text-gray-400">Aucune alerte active</p>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default function AlertPanel({ alerts }: Props) {
           >
             {getAlertIcon(alert.alert_type)}
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-200 line-clamp-2">
+              <p className="text-sm text-gray-300 line-clamp-2">
                 {alert.message}
               </p>
               <p className="text-[11px] text-gray-500 mt-1">

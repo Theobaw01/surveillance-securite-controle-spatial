@@ -225,7 +225,7 @@ export default function CamerasPage() {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Camera className="w-6 h-6" /> Caméras
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">
+        <p className="text-sm text-gray-500 mt-0.5">
           Gérez vos flux vidéo et lancez l&apos;inspection faciale
         </p>
       </div>
@@ -245,7 +245,7 @@ export default function CamerasPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MonitorPlay className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-200">
+                  <span className="text-sm font-medium text-gray-300">
                     {cam.label}
                   </span>
                   <span className="text-[11px] text-gray-500">
@@ -315,11 +315,11 @@ export default function CamerasPage() {
           {/* Personnes présentes */}
           <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-green-400" />
+              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-green-500" />
                 Personnes présentes
               </h3>
-              <span className="text-xs font-mono text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-mono text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-full">
                 {presentPersons.length}
               </span>
             </div>
@@ -347,7 +347,7 @@ export default function CamerasPage() {
                   className="px-4 py-3 border-b border-surface-border last:border-0 flex items-center justify-between"
                 >
                   <div>
-                    <p className="text-sm font-medium text-white">{p.full_name}</p>
+                    <p className="text-sm font-medium text-gray-200">{p.full_name}</p>
                     <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
                       <LogIn className="w-3 h-3" />
                       {p.entry_time.split(" ")[1]}
@@ -365,8 +365,8 @@ export default function CamerasPage() {
           {/* Historique des visites */}
           <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-yellow-400" />
+              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-yellow-500" />
                 Historique des visites
               </h3>
               <span className="text-xs font-mono text-gray-400">
@@ -385,7 +385,7 @@ export default function CamerasPage() {
                     className="px-4 py-2.5 border-b border-surface-border last:border-0"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-200">
+                      <p className="text-sm text-gray-300">
                         {h.prenom} {h.nom}
                       </p>
                       <p className="text-xs font-mono text-yellow-400">
@@ -422,14 +422,14 @@ export default function CamerasPage() {
             placeholder="Source (0, rtsp://..., video.mp4)"
             value={newSource}
             onChange={(e) => setNewSource(e.target.value)}
-            className="flex-1 bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500"
+            className="flex-1 bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 placeholder-gray-400 focus:outline-none focus:border-brand-500"
           />
           <input
             type="text"
             placeholder="Nom (optionnel)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="w-48 bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500"
+            className="w-48 bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 placeholder-gray-400 focus:outline-none focus:border-brand-500"
           />
           <button
             onClick={addCamera}

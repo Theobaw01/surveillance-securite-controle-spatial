@@ -3,25 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --border: #334155;
+  --bg: #000000;
+  --card: #0a0a0a;
+  --card-elevated: #111111;
+  --border: #1a1a1a;
+  --border-light: #222222;
 }
 
 body {
-  @apply bg-surface text-gray-100 antialiased;
+  @apply bg-black text-gray-200 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 3px;
+  background: #333;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Selection */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
 }
 
 /* Animations */
@@ -34,9 +45,88 @@ body {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glass card */
+.glass-card {
+  @apply relative overflow-hidden;
+  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 60%);
+  pointer-events: none;
+}
+
+/* Settings input field */
+.input-field {
+  @apply w-full rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500
+    focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.input-field:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.input-field:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: #0a0a0a;
+}
+
+/* Custom range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #333;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid currentColor;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Subtle glow accent */
+.glow-brand {
+  box-shadow: 0 0 20px -6px rgba(99, 102, 241, 0.3);
+}
+.glow-green {
+  box-shadow: 0 0 20px -6px rgba(34, 197, 94, 0.3);
+}
+.glow-red {
+  box-shadow: 0 0 20px -6px rgba(239, 68, 68, 0.3);
 }

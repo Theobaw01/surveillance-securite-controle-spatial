@@ -38,23 +38,24 @@ export default function OccupancyChart({ data }: Props) {
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis
               dataKey="hour"
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
-              axisLine={{ stroke: "#334155" }}
+              tick={{ fill: "#666", fontSize: 11 }}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
             />
             <YAxis
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
-              axisLine={{ stroke: "#334155" }}
+              tick={{ fill: "#666", fontSize: 11 }}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
             />
             <Tooltip
               contentStyle={{
-                background: "#1e293b",
-                border: "1px solid #334155",
+                background: "rgba(12,12,12,0.95)",
+                border: "1px solid rgba(255,255,255,0.06)",
                 borderRadius: 8,
                 color: "#e2e8f0",
                 fontSize: 12,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
               }}
             />
             <Bar

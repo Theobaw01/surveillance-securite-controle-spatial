@@ -110,7 +110,7 @@ export default function PersonsPage() {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Users className="w-6 h-6" /> Personnes
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">
+        <p className="text-sm text-gray-500 mt-0.5">
           Enregistrez et gérez les personnes à reconnaître
         </p>
       </div>
@@ -162,7 +162,7 @@ export default function PersonsPage() {
                 value={prenom}
                 onChange={(e) => setPrenom(e.target.value)}
                 required
-                className="bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500"
+                className="bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 placeholder-gray-400 focus:outline-none focus:border-brand-500"
               />
               <input
                 type="text"
@@ -170,7 +170,7 @@ export default function PersonsPage() {
                 value={nom}
                 onChange={(e) => setNom(e.target.value)}
                 required
-                className="bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500"
+                className="bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 placeholder-gray-400 focus:outline-none focus:border-brand-500"
               />
             </div>
 
@@ -179,13 +179,13 @@ export default function PersonsPage() {
               placeholder="Groupe (classe, département...)"
               value={groupe}
               onChange={(e) => setGroupe(e.target.value)}
-              className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500"
+              className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 placeholder-gray-400 focus:outline-none focus:border-brand-500"
             />
 
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-brand-500"
+              className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500"
             >
               <option value="visiteur">Visiteur</option>
               <option value="employe">Employé</option>
@@ -268,7 +268,7 @@ export default function PersonsPage() {
                         <td className="px-4 py-3 font-mono text-xs text-gray-400">
                           {p.person_id}
                         </td>
-                        <td className="px-4 py-3 text-gray-200 font-medium">
+                        <td className="px-4 py-3 text-gray-300 font-medium">
                           {p.prenom} {p.nom}
                         </td>
                         <td className="px-4 py-3 text-gray-400">

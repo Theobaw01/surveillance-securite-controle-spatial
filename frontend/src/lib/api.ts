@@ -369,3 +369,84 @@ export function getInspectionStatus(cameraId = "cam_01") {
     }>;
   }>(`/inspection/status?camera_id=${cameraId}`);
 }
+
+// ── Per-person attendance history (for reports/graphs) ───
+export function getPersonAttendanceHistory(
+  personId: string,
+  dateFrom?: string,
+  dateTo?: string
+) {
+  const params = new URLSearchParams();
+  if (dateFrom) params.set("date_from", dateFrom);
+  if (dateTo) params.set("date_to", dateTo);
+  const qs = params.toString() ? `?${params}` : "";
+  return fetchAPI<{
+    person_id: string;
+    nom: string;
+    prenom: string;
+    groupe: string;
+    role: string;
+    date_from: string;
+    date_to: string;
+    summary: {
+      total_days: number;
+      days_present: number;
+      days_absent: number;
+      taux_presence: number;
+      total_duration_sec: number;
+      avg_duration_sec: number;
+      avg_duration_hours: number;
+      total_late: number;
+    };
+    daily: Array<{
+      date: string;
+      present: boolean;
+      first_entry_time: string | null;
+      last_exit_time: string | null;
+      duration_sec: number;
+      duration_hours: number;
+      entries_count: number;
+      exits_count: number;
+      is_late: boolean;
+      retard_minutes: number;
+      segments: Array<{
+        entry_time: string | null;
+        exit_time: string | null;
+        entry_ts: number | null;
+        exit_ts: number | null;
+        duration_sec: number;
+      }>;
+      events: Array<{
+        direction: string;
+        time: string;
+        timestamp: number;
+      }>;
+    }>;
+    raw_records: Array<Record<string, unknown>>;
+  }>(`/attendance/history/${personId}${qs}`);
+}
+
+// ── Settings ─────────────────────────────────────────
+export function getSettings() {
+  return fetchAPI<{
+    recording_periods: Array<{ start: string; end: string }>;
+    absence_timeout_sec: number;
+    face_recognition_threshold: number;
+    face_recognition_interval: number;
+    late_threshold_minutes: number;
+    camera_source: string;
+    auto_start_inspection: boolean;
+    notification_enabled: boolean;
+    export_format: string;
+  }>("/settings");
+}
+
+export function updateSettings(settings: Record<string, unknown>) {
+  return fetchAPI<{
+    status: string;
+    settings: Record<string, unknown>;
+  }>("/settings", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}

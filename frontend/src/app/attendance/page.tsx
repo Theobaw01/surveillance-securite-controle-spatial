@@ -108,7 +108,7 @@ export default function AttendancePage() {
         <button
           onClick={loadData}
           disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-card border border-surface-border text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-40"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-card border border-surface-border text-sm text-gray-500 hover:text-gray-200 transition-colors disabled:opacity-40"
         >
           <RefreshCw
             className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -126,7 +126,7 @@ export default function AttendancePage() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === key
                 ? "bg-brand-600 text-white"
-                : "text-gray-400 hover:bg-surface-card hover:text-white"
+                : "text-gray-500 hover:bg-surface-card hover:text-gray-200"
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -144,7 +144,7 @@ export default function AttendancePage() {
       {/* Tab content */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
           <span className="ml-2 text-sm text-gray-400">Chargement...</span>
         </div>
       ) : tab === "duration" ? (
@@ -171,11 +171,11 @@ function PresenceDurationView({
   if (records.length === 0) {
     return (
       <div className="bg-surface-card border border-surface-border rounded-xl p-12 text-center">
-        <Clock className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+        <Clock className="w-12 h-12 mx-auto text-gray-400 mb-2" />
         <p className="text-sm text-gray-500">
           Aucune donnée de présence aujourd&apos;hui
         </p>
-        <p className="text-xs text-gray-600 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           Uploadez une vidéo dans l&apos;onglet Détection pour calculer les
           durées de présence
         </p>
@@ -188,12 +188,12 @@ function PresenceDurationView({
       {/* Summary bar */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-surface-card border border-surface-border rounded-xl p-5">
-          <Users className="w-5 h-5 text-blue-400 mb-2" />
+          <Users className="w-5 h-5 text-blue-500 mb-2" />
           <p className="text-2xl font-bold text-white">{records.length}</p>
           <p className="text-xs text-gray-400 mt-1">Personnes présentes</p>
         </div>
         <div className="bg-surface-card border border-surface-border rounded-xl p-5">
-          <Clock className="w-5 h-5 text-brand-400 mb-2" />
+          <Clock className="w-5 h-5 text-brand-500 mb-2" />
           <p className="text-2xl font-bold text-brand-300">
             {_fmtDuration(totalDuration)}
           </p>
@@ -232,7 +232,7 @@ function PresenceDurationView({
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-gray-200">
                       {r.prenom} {r.nom}
                     </p>
                     <p className="text-[11px] text-gray-500">
@@ -309,7 +309,7 @@ function StatsView({
       label: "Inscrits",
       value: stats.total_inscrits,
       icon: Users,
-      color: "text-blue-400",
+      color: "text-blue-500",
     },
     {
       label: "Présents",
@@ -327,7 +327,7 @@ function StatsView({
       label: "Retards",
       value: stats.total_retards,
       icon: AlertTriangle,
-      color: "text-orange-400",
+      color: "text-orange-500",
     },
   ];
 
@@ -342,7 +342,7 @@ function StatsView({
           >
             <c.icon className={`w-5 h-5 ${c.color} mb-2`} />
             <p className="text-2xl font-bold text-white">{c.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{c.label}</p>
+            <p className="text-xs text-gray-500 mt-1">{c.label}</p>
           </div>
         ))}
       </div>
@@ -391,13 +391,13 @@ function AttendanceTable({
   if (records.length === 0) {
     return (
       <div className="bg-surface-card border border-surface-border rounded-xl p-12 text-center">
-        <Clock className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+        <Clock className="w-12 h-12 mx-auto text-gray-400 mb-2" />
         <p className="text-sm text-gray-500">
           {showRetard
             ? "Aucun retard enregistré aujourd'hui"
             : "Aucun pointage enregistré aujourd'hui"}
         </p>
-        <p className="text-xs text-gray-600 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           Uploadez une vidéo dans l&apos;onglet Détection pour enregistrer les
           présences
         </p>
@@ -425,7 +425,7 @@ function AttendanceTable({
                 key={i}
                 className="hover:bg-surface-hover/40 transition-colors"
               >
-                <td className="px-4 py-2.5 text-gray-200">
+                <td className="px-4 py-2.5 text-gray-300">
                   {(r.prenom as string) || ""} {(r.nom as string) || ""}
                 </td>
                 <td className="px-4 py-2.5">
@@ -475,7 +475,7 @@ function AbsentView({ records }: { records: AttendanceRecord[] }) {
   if (records.length === 0) {
     return (
       <div className="bg-surface-card border border-surface-border rounded-xl p-12 text-center">
-        <CheckCircle2 className="w-12 h-12 mx-auto text-green-600 mb-2" />
+        <CheckCircle2 className="w-12 h-12 mx-auto text-green-400 mb-2" />
         <p className="text-sm text-gray-400">
           Tout le monde est présent aujourd&apos;hui !
         </p>
@@ -501,7 +501,7 @@ function AbsentView({ records }: { records: AttendanceRecord[] }) {
                 key={i}
                 className="hover:bg-surface-hover/40 transition-colors"
               >
-                <td className="px-4 py-2.5 text-gray-200">
+                <td className="px-4 py-2.5 text-gray-300">
                   {(r.prenom as string) || ""} {(r.nom as string) || ""}
                 </td>
                 <td className="px-4 py-2.5 text-gray-400 text-xs">

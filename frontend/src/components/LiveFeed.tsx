@@ -71,7 +71,7 @@ export default function LiveFeed({ cameraId = "cam_01", isRunning = false }: Pro
           ) : (
             <CameraOff className="w-4 h-4 text-gray-500" />
           )}
-          <span className="text-sm font-medium text-gray-200">
+          <span className="text-sm font-medium text-gray-300">
             {cameraId}
           </span>
           {isRunning && !error && !connecting && (
@@ -89,7 +89,7 @@ export default function LiveFeed({ cameraId = "cam_01", isRunning = false }: Pro
         </div>
         {isRunning && (
           <button
-            className="text-gray-400 hover:text-gray-200 transition-colors"
+            className="text-gray-400 hover:text-gray-400 transition-colors"
             title="Rafraîchir"
             onClick={() => {
               failCountRef.current = 0;
@@ -129,7 +129,7 @@ export default function LiveFeed({ cameraId = "cam_01", isRunning = false }: Pro
             <p className="text-sm">
               {error ? "Erreur de connexion" : "Aucun flux actif"}
             </p>
-            <p className="text-xs mt-1 text-gray-600">
+            <p className="text-xs mt-1 text-gray-400">
               Démarrez une caméra depuis l&apos;onglet Caméras
             </p>
           </div>

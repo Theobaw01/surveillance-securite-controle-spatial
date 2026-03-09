@@ -115,7 +115,7 @@ export default function DetectPage() {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <ImageIcon className="w-6 h-6" /> Détection &amp; Présence
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">
+        <p className="text-sm text-gray-500 mt-0.5">
           Uploadez une image ou une vidéo pour détecter, identifier et mesurer
           le temps de présence
         </p>
@@ -135,7 +135,7 @@ export default function DetectPage() {
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             mode === "image"
               ? "bg-brand-600 text-white"
-              : "bg-surface-card text-gray-400 border border-surface-border hover:text-white"
+              : "bg-surface-card text-gray-500 border border-surface-border hover:text-gray-200"
           }`}
         >
           <ImageIcon className="w-4 h-4" /> Image
@@ -152,7 +152,7 @@ export default function DetectPage() {
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             mode === "video"
               ? "bg-brand-600 text-white"
-              : "bg-surface-card text-gray-400 border border-surface-border hover:text-white"
+              : "bg-surface-card text-gray-500 border border-surface-border hover:text-gray-200"
           }`}
         >
           <Video className="w-4 h-4" /> Vidéo
@@ -174,8 +174,8 @@ export default function DetectPage() {
               />
             ) : file && mode === "video" ? (
               <div className="py-4">
-                <Video className="w-16 h-16 mx-auto text-brand-400 mb-3" />
-                <p className="text-sm text-gray-200 font-medium">
+                <Video className="w-16 h-16 mx-auto text-brand-500 mb-3" />
+                <p className="text-sm text-gray-300 font-medium">
                   {file.name}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -282,7 +282,7 @@ export default function DetectPage() {
             <>
               <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-surface-border">
-                  <span className="text-sm font-medium text-gray-200">
+                  <span className="text-sm font-medium text-gray-300">
                     Résultat
                   </span>
                 </div>
@@ -295,7 +295,7 @@ export default function DetectPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-surface-card border border-surface-border rounded-xl p-4 text-center">
-                  <User className="w-5 h-5 mx-auto text-blue-400 mb-1" />
+                  <User className="w-5 h-5 mx-auto text-blue-500 mb-1" />
                   <p className="text-xl font-bold text-white">
                     {imageResult.total_persons}
                   </p>
@@ -309,7 +309,7 @@ export default function DetectPage() {
                   <p className="text-[11px] text-gray-400">Identifiées</p>
                 </div>
                 <div className="bg-surface-card border border-surface-border rounded-xl p-4 text-center">
-                  <Clock className="w-5 h-5 mx-auto text-purple-400 mb-1" />
+                  <Clock className="w-5 h-5 mx-auto text-purple-500 mb-1" />
                   <p className="text-xl font-bold text-white">
                     {imageResult.processing_ms.toFixed(0)}
                   </p>
@@ -318,7 +318,7 @@ export default function DetectPage() {
               </div>
 
               <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-300 mb-3">
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">
                   Détections détaillées
                 </h3>
                 <div className="space-y-2">
@@ -333,7 +333,7 @@ export default function DetectPage() {
                             det.name ? "bg-green-400" : "bg-red-400"
                           }`}
                         />
-                        <span className="text-sm text-gray-200">
+                        <span className="text-sm text-gray-300">
                           {det.name || "Inconnu"}
                         </span>
                       </div>
@@ -359,26 +359,26 @@ export default function DetectPage() {
             <>
               {/* Video info */}
               <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                  <Video className="w-4 h-4 text-brand-400" />
+                <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                  <Video className="w-4 h-4 text-brand-500" />
                   Infos vidéo
                 </h3>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-gray-500">Durée</div>
-                  <div className="text-gray-200">
+                  <div className="text-gray-300">
                     {videoResult.video_info.duration_formatted}
                   </div>
                   <div className="text-gray-500">FPS</div>
-                  <div className="text-gray-200">
+                  <div className="text-gray-300">
                     {videoResult.video_info.fps}
                   </div>
                   <div className="text-gray-500">Frames traitées</div>
-                  <div className="text-gray-200">
+                  <div className="text-gray-300">
                     {videoResult.video_info.frames_processed} /{" "}
                     {videoResult.video_info.total_frames}
                   </div>
                   <div className="text-gray-500">Temps de traitement</div>
-                  <div className="text-gray-200">
+                  <div className="text-gray-300">
                     {(videoResult.processing_ms / 1000).toFixed(1)}s
                   </div>
                 </div>
@@ -394,14 +394,14 @@ export default function DetectPage() {
                   <p className="text-[11px] text-gray-400">Identifiées</p>
                 </div>
                 <div className="bg-surface-card border border-surface-border rounded-xl p-4 text-center">
-                  <Eye className="w-5 h-5 mx-auto text-blue-400 mb-1" />
+                  <Eye className="w-5 h-5 mx-auto text-blue-500 mb-1" />
                   <p className="text-xl font-bold text-white">
                     {videoResult.total_detections}
                   </p>
                   <p className="text-[11px] text-gray-400">Détections</p>
                 </div>
                 <div className="bg-surface-card border border-surface-border rounded-xl p-4 text-center">
-                  <User className="w-5 h-5 mx-auto text-orange-400 mb-1" />
+                  <User className="w-5 h-5 mx-auto text-orange-500 mb-1" />
                   <p className="text-xl font-bold text-white">
                     {videoResult.unknown_detections}
                   </p>
@@ -413,7 +413,7 @@ export default function DetectPage() {
               {videoResult.annotated_keyframe && (
                 <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
                   <div className="px-4 py-3 border-b border-surface-border">
-                    <span className="text-sm font-medium text-gray-200">
+                    <span className="text-sm font-medium text-gray-300">
                       Frame clé (plus de détections)
                     </span>
                   </div>
@@ -429,8 +429,8 @@ export default function DetectPage() {
               {videoResult.presence.length > 0 && (
                 <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
                   <div className="px-4 py-3 border-b border-surface-border flex items-center gap-2">
-                    <Timer className="w-4 h-4 text-brand-400" />
-                    <span className="text-sm font-semibold text-gray-200">
+                    <Timer className="w-4 h-4 text-brand-500" />
+                    <span className="text-sm font-semibold text-gray-300">
                       Temps de présence
                     </span>
                   </div>
@@ -455,7 +455,7 @@ export default function DetectPage() {
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-sm font-medium text-gray-200 truncate">
                             {p.name}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -482,7 +482,7 @@ export default function DetectPage() {
 
               {videoResult.presence.length === 0 && (
                 <div className="bg-surface-card border border-surface-border rounded-xl p-8 text-center">
-                  <User className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                  <User className="w-12 h-12 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
                     Aucune personne identifiée dans la vidéo.
                     <br />
@@ -498,14 +498,14 @@ export default function DetectPage() {
             <div className="bg-surface-card border border-surface-border rounded-xl p-12 text-center">
               {mode === "video" ? (
                 <>
-                  <Video className="w-16 h-16 mx-auto text-gray-600 mb-3" />
+                  <Video className="w-16 h-16 mx-auto text-gray-400 mb-3" />
                   <p className="text-sm text-gray-500">
                     Uploadez une vidéo pour analyser le temps de présence
                   </p>
                 </>
               ) : (
                 <>
-                  <ImageIcon className="w-16 h-16 mx-auto text-gray-600 mb-3" />
+                  <ImageIcon className="w-16 h-16 mx-auto text-gray-400 mb-3" />
                   <p className="text-sm text-gray-500">
                     Uploadez une image et cliquez &quot;Analyser&quot;
                   </p>

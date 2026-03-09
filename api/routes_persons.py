@@ -700,3 +700,74 @@ async def attendance_stats(
         return stats
     except Exception as e:
         raise HTTPException(500, f"Erreur : {e}")
+
+
+@router.get("/attendance/history/{person_id}", tags=["Attendance"])
+async def attendance_history(
+    person_id: str,
+    date_from: Optional[str] = Query(None, description="Date début YYYY-MM-DD"),
+    date_to: Optional[str] = Query(None, description="Date fin YYYY-MM-DD"),
+):
+    """Historique détaillé par personne avec données jour par jour (pour graphiques)."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        history = _face_db.get_person_attendance_history(
+            person_id=person_id, date_from=date_from, date_to=date_to
+        )
+        return history
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")
+
+
+# ─── Settings ──────────────────────────────────────────────────
+_SETTINGS_PATH = os.path.join("data", "settings.json")
+
+
+def _load_settings() -> dict:
+    """Charge les paramètres depuis le fichier JSON."""
+    defaults = {
+        "recording_periods": [],
+        "absence_timeout_sec": 20,
+        "face_recognition_threshold": 0.4,
+        "face_recognition_interval": 5,
+        "late_threshold_minutes": 15,
+        "camera_source": "0",
+        "auto_start_inspection": False,
+        "notification_enabled": False,
+        "export_format": "csv",
+    }
+    try:
+        if os.path.exists(_SETTINGS_PATH):
+            import json as _json
+            with open(_SETTINGS_PATH, "r", encoding="utf-8") as f:
+                saved = _json.load(f)
+                defaults.update(saved)
+    except Exception:
+        pass
+    return defaults
+
+
+def _save_settings(settings: dict):
+    """Sauvegarde les paramètres dans le fichier JSON."""
+    os.makedirs(os.path.dirname(_SETTINGS_PATH), exist_ok=True)
+    import json as _json
+    with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        _json.dump(settings, f, indent=2, ensure_ascii=False)
+
+
+@router.get("/settings", tags=["Settings"])
+async def get_settings():
+    """Récupère les paramètres de configuration."""
+    return _load_settings()
+
+
+@router.put("/settings", tags=["Settings"])
+async def update_settings(body: dict):
+    """Met à jour les paramètres de configuration."""
+    current = _load_settings()
+    current.update(body)
+    _save_settings(current)
+    return {"status": "updated", "settings": current}

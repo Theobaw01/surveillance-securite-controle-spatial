@@ -27,7 +27,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <AuthStatus />
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8"
+        style={{ background: "#050505" }}>
+        {children}
+      </main>
     </AuthProvider>
   );
 }

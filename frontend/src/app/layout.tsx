@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className="dark">
+    <html lang="fr">
       <body className="flex h-screen overflow-hidden">
         <AppShell>{children}</AppShell>
       </body>

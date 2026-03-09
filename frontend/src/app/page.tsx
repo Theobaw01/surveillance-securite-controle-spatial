@@ -137,7 +137,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <p className="text-sm text-gray-500 mt-0.5">
             Suivi en temps réel — Surveillance-IA
           </p>
         </div>
@@ -196,11 +196,11 @@ export default function DashboardPage() {
           {/* Personnes présentes en temps réel */}
           <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-green-400" />
+              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-green-500" />
                 En direct
               </h3>
-              <span className="text-xs font-mono text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-mono text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-full">
                 {presentPersons.length} présent(s)
               </span>
             </div>
@@ -221,8 +221,8 @@ export default function DashboardPage() {
                     className="px-4 py-2.5 border-b border-surface-border last:border-0 flex items-center justify-between"
                   >
                     <div>
-                      <p className="text-sm font-medium text-white">{p.full_name}</p>
-                      <p className="text-[11px] text-gray-500">
+                      <p className="text-sm font-medium text-gray-200">{p.full_name}</p>
+                      <p className="text-[11px] text-gray-400">
                         Entrée {fmtTime(p.entry_time)}
                       </p>
                     </div>
@@ -236,8 +236,8 @@ export default function DashboardPage() {
           {/* Séjours du jour */}
           <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-yellow-400" />
+              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-yellow-500" />
                 Séjours du jour
               </h3>
               <span className="text-xs text-gray-400">
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                     className="px-4 py-2.5 border-b border-surface-border last:border-0"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-200">{r.prenom} {r.nom}</p>
+                      <p className="text-sm text-gray-300">{r.prenom} {r.nom}</p>
                       <p className="text-xs font-mono text-yellow-400">
                         {r.duration_formatted}
                       </p>
