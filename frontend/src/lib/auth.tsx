@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { login, isAuthenticated } from "@/lib/api";
+import { login, logout, isAuthenticated } from "@/lib/api";
 
 interface AuthContextType {
   ready: boolean;
@@ -26,8 +26,8 @@ export function useAuth() {
 }
 
 /**
- * AuthProvider — tries auto-login with default credentials
- * so protected API routes (stream/start, stream/stop) work.
+ * AuthProvider — always performs a fresh login on mount to guarantee
+ * a valid token, avoiding stale/expired token issues.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -36,12 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function autoLogin() {
-      // Already have a token?
-      if (isAuthenticated()) {
-        setLoggedIn(true);
-        setReady(true);
-        return;
-      }
+      // Always clear any old token and do a fresh login
+      logout();
 
       try {
         await login("admin", "admin_surv_2024");

@@ -4,7 +4,12 @@
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-async function fetchAPI<T>(path: string, opts?: RequestInit): Promise<T> {
+// Default admin credentials for auto-re-login on 401
+const DEFAULT_USER = "admin";
+const DEFAULT_PASS = "admin_surv_2024";
+
+/** Low-level fetch (no retry). */
+async function rawFetch<T>(path: string, opts?: RequestInit): Promise<Response> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("surv_token") : null;
 
@@ -15,12 +20,38 @@ async function fetchAPI<T>(path: string, opts?: RequestInit): Promise<T> {
   if (!headers["Content-Type"] && !(opts?.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
-  // Don't set Content-Type for FormData (browser sets boundary)
   if (opts?.body instanceof FormData) {
     delete headers["Content-Type"];
   }
 
-  const res = await fetch(`${API}${path}`, { ...opts, headers });
+  return fetch(`${API}${path}`, { ...opts, headers });
+}
+
+/** Fetch with automatic re-login on 401. */
+async function fetchAPI<T>(path: string, opts?: RequestInit): Promise<T> {
+  let res = await rawFetch<T>(path, opts);
+
+  // On 401, try to refresh the token and retry once
+  if (res.status === 401 && path !== "/auth/token") {
+    try {
+      const loginRes = await fetch(`${API}/auth/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: DEFAULT_USER, password: DEFAULT_PASS }),
+      });
+      if (loginRes.ok) {
+        const data = await loginRes.json();
+        if (typeof window !== "undefined" && data.access_token) {
+          localStorage.setItem("surv_token", data.access_token);
+        }
+        // Retry original request with fresh token
+        res = await rawFetch<T>(path, opts);
+      }
+    } catch {
+      // Re-login failed, fall through to error handling
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || `API error ${res.status}`);
