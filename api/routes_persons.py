@@ -213,74 +213,91 @@ async def detect_image(
     conf_threshold: float = 0.3,
 ):
     """Analyse une image : détection de personnes + reconnaissance faciale."""
-    init_components()
+    try:
+        init_components()
+    except Exception as e:
+        logger.warning(f"init_components error: {e}")
 
     if not _model:
         raise HTTPException(503, "Modèle YOLO non disponible")
 
-    file_bytes = await image.read()
-    img = _read_upload_as_cv2(file_bytes)
+    try:
+        file_bytes = await image.read()
+        img = _read_upload_as_cv2(file_bytes)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"Erreur lecture image : {e}")
 
     t0 = time.time()
 
-    # 1. Détection YOLO
-    results = _model.predict(img, conf=conf_threshold, classes=[0], verbose=False)[0]
-    detections = []
+    try:
+        # 1. Détection YOLO
+        results = _model.predict(img, conf=conf_threshold, classes=[0], verbose=False)[0]
+        detections = []
 
-    for box in results.boxes:
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
-        conf = float(box.conf[0])
+        for box in results.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = float(box.conf[0])
 
-        person_info = {
-            "bbox": [x1, y1, x2, y2],
-            "confidence": round(conf, 3),
-            "name": None,
-            "similarity": 0.0,
+            person_info = {
+                "bbox": [x1, y1, x2, y2],
+                "confidence": round(conf, 3),
+                "name": None,
+                "similarity": 0.0,
+            }
+
+            # 2. Reconnaissance faciale
+            if _face_app:
+                try:
+                    person_crop = img[max(0, y1):y2, max(0, x1):x2]
+                    if person_crop.size > 0:
+                        faces = _face_app.get(person_crop)
+                        if faces and _face_db:
+                            face = max(faces, key=lambda f: f.det_score)
+                            embedding = face.embedding / np.linalg.norm(face.embedding)
+                            identity = _face_db.identify(embedding)
+                            if identity:
+                                person_info["name"] = f"{identity['prenom']} {identity['nom']}"
+                                person_info["similarity"] = round(identity["similarity"], 3)
+                                person_info["person_id"] = identity["person_id"]
+                except Exception as face_err:
+                    logger.warning(f"Face recognition error: {face_err}")
+
+            detections.append(person_info)
+
+        elapsed_ms = (time.time() - t0) * 1000
+
+        # 3. Annoter l'image
+        annotated = img.copy()
+        for det in detections:
+            x1, y1, x2, y2 = det["bbox"]
+            name = det["name"] or "Inconnu"
+            color = (0, 255, 0) if det["name"] else (0, 0, 255)
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
+
+            label = name
+            if det["similarity"] > 0:
+                label += f" ({det['similarity']:.0%})"
+            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            cv2.rectangle(annotated, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
+            cv2.putText(annotated, label, (x1, y1 - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        annotated_b64 = _encode_frame_base64(annotated)
+
+        return {
+            "detections": detections,
+            "total_persons": len(detections),
+            "total_identified": sum(1 for d in detections if d["name"]),
+            "processing_ms": round(elapsed_ms, 1),
+            "annotated_image": annotated_b64,
         }
-
-        # 2. Reconnaissance faciale
-        if _face_app:
-            person_crop = img[max(0, y1):y2, max(0, x1):x2]
-            if person_crop.size > 0:
-                faces = _face_app.get(person_crop)
-                if faces and _face_db:
-                    face = max(faces, key=lambda f: f.det_score)
-                    embedding = face.embedding / np.linalg.norm(face.embedding)
-                    identity = _face_db.identify(embedding)
-                    if identity:
-                        person_info["name"] = f"{identity['prenom']} {identity['nom']}"
-                        person_info["similarity"] = round(identity["similarity"], 3)
-                        person_info["person_id"] = identity["person_id"]
-
-        detections.append(person_info)
-
-    elapsed_ms = (time.time() - t0) * 1000
-
-    # 3. Annoter l'image
-    annotated = img.copy()
-    for det in detections:
-        x1, y1, x2, y2 = det["bbox"]
-        name = det["name"] or "Inconnu"
-        color = (0, 255, 0) if det["name"] else (0, 0, 255)
-        cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
-
-        label = name
-        if det["similarity"] > 0:
-            label += f" ({det['similarity']:.0%})"
-        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-        cv2.rectangle(annotated, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
-        cv2.putText(annotated, label, (x1, y1 - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-    annotated_b64 = _encode_frame_base64(annotated)
-
-    return {
-        "detections": detections,
-        "total_persons": len(detections),
-        "total_identified": sum(1 for d in detections if d["name"]),
-        "processing_ms": round(elapsed_ms, 1),
-        "annotated_image": annotated_b64,
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Detection error: {e}", exc_info=True)
+        raise HTTPException(500, f"Erreur détection : {e}")
 
 
 # ═══════════════════════════════════════════════════════════════

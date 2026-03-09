@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const timeout = setTimeout(() => controller.abort(), 5000);
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001"}/auth/token`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"}/auth/token`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -462,14 +462,34 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS
+# CORS — allow_credentials requires explicit origin, not "*"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global exception handler — ensures CORS headers even on 500
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    logger.error(f"Unhandled error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Erreur interne : {exc}"},
+        headers=headers,
+    )
 
 # ─── Enregistrer les routes personnes & détection ──────────
 try:
