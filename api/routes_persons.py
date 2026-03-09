@@ -55,6 +55,15 @@ def init_components():
         )
         _face_app.prepare(ctx_id=0, det_size=(640, 640))
         logger.info("✅ InsightFace buffalo_l chargé")
+    except TypeError:
+        # Older insightface version without providers kwarg
+        try:
+            from insightface.app import FaceAnalysis as FA2
+            _face_app = FA2(name="buffalo_l")
+            _face_app.prepare(ctx_id=0, det_size=(640, 640))
+            logger.info("✅ InsightFace buffalo_l chargé (legacy API)")
+        except Exception as e:
+            logger.warning(f"⚠️ InsightFace non disponible : {e}")
     except Exception as e:
         logger.warning(f"⚠️ InsightFace non disponible : {e}")
 
@@ -98,20 +107,23 @@ async def register_person(
     """Enregistre une nouvelle personne avec sa photo."""
     init_components()
 
-    if not _face_app:
-        raise HTTPException(503, "InsightFace non disponible")
-
     file_bytes = await photo.read()
     img = _read_upload_as_cv2(file_bytes)
 
-    # Détecter les visages
-    faces = _face_app.get(img)
-    if not faces:
-        raise HTTPException(400, "Aucun visage détecté sur la photo")
+    face_detected = False
+    face_score = 0.0
+    bbox = []
+    embedding = None
 
-    # Prendre le plus grand visage
-    face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
-    embedding = face.embedding / np.linalg.norm(face.embedding)
+    # Détecter les visages si InsightFace est disponible
+    if _face_app:
+        faces = _face_app.get(img)
+        if faces:
+            face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
+            embedding = face.embedding / np.linalg.norm(face.embedding)
+            bbox = face.bbox.astype(int).tolist()
+            face_detected = True
+            face_score = float(face.det_score)
 
     person_id = f"P{uuid.uuid4().hex[:8].upper()}"
 
@@ -125,15 +137,14 @@ async def register_person(
                 groupe=groupe,
                 role=role,
             )
-            _face_db.add_embedding(person_id, embedding)
+            if embedding is not None:
+                _face_db.add_embedding(person_id, embedding)
         except Exception as e:
             logger.error(f"Erreur FaceDatabase: {e}")
             raise HTTPException(500, f"Erreur enregistrement : {e}")
     else:
         # Fallback : JSON file
         _save_person_json(person_id, nom, prenom, groupe, role, embedding)
-
-    bbox = face.bbox.astype(int).tolist()
 
     return {
         "status": "registered",
@@ -142,9 +153,10 @@ async def register_person(
         "prenom": prenom,
         "groupe": groupe,
         "role": role,
-        "face_detected": True,
+        "face_detected": face_detected,
         "face_bbox": bbox,
-        "face_score": round(float(face.det_score), 3),
+        "face_score": round(face_score, 3),
+        "message": "Personne enregistrée" + (" avec visage" if face_detected else " sans reconnaissance faciale"),
     }
 
 
@@ -282,14 +294,16 @@ def _save_person_json(person_id, nom, prenom, groupe, role, embedding):
     import json
     os.makedirs("data", exist_ok=True)
     data = _load_persons_json()
-    data.append({
+    entry = {
         "person_id": person_id,
         "nom": nom,
         "prenom": prenom,
         "groupe": groupe,
         "role": role,
-        "embedding": embedding.tolist(),
-    })
+    }
+    if embedding is not None:
+        entry["embedding"] = embedding.tolist()
+    data.append(entry)
     with open(_JSON_DB, "w") as f:
         json.dump(data, f, indent=2)
 

@@ -46,3 +46,4 @@ tensorboard/
 dist/
 *.egg-info/
 build/
+yolov8n.pt

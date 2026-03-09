@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 SECRET_KEY = os.getenv("SECRET_KEY", "surveillance-ia-secret-key-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
-DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", "models/finetuned/best.pt")
+DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", "yolov8n.pt")
 
 
 # ═══════════════════════════════════════════════════════════════
