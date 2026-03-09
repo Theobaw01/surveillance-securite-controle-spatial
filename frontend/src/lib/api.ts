@@ -316,3 +316,56 @@ export function getAttendanceStats(dateFrom?: string, dateTo?: string) {
     taux_presence: number;
   }>(`/attendance/stats${qs}`);
 }
+
+// ── Inspection (reconnaissance faciale temps réel) ───
+export function startInspection(cameraId = "cam_01") {
+  return fetchAPI<{ status: string; camera_id: string }>(
+    `/inspection/start?camera_id=${cameraId}`,
+    { method: "POST" }
+  );
+}
+
+export function stopInspection(cameraId = "cam_01") {
+  return fetchAPI<{
+    camera_id: string;
+    started_at: string;
+    stopped_at: string;
+    total_visits: number;
+    history: Array<{
+      person_id: string;
+      nom: string;
+      prenom: string;
+      entry_time: string;
+      exit_time: string;
+      duration_sec: number;
+    }>;
+  }>(`/inspection/stop?camera_id=${cameraId}`, { method: "POST" });
+}
+
+export function getInspectionStatus(cameraId = "cam_01") {
+  return fetchAPI<{
+    active: boolean;
+    camera_id: string;
+    started_at: string | null;
+    present_count: number;
+    present_persons: Array<{
+      person_id: string;
+      nom: string;
+      prenom: string;
+      full_name: string;
+      entry_time: string;
+      duration_sec: number;
+      duration_formatted: string;
+      similarity: number;
+    }>;
+    total_visits: number;
+    history: Array<{
+      person_id: string;
+      nom: string;
+      prenom: string;
+      entry_time: string;
+      exit_time: string;
+      duration_sec: number;
+    }>;
+  }>(`/inspection/status?camera_id=${cameraId}`);
+}

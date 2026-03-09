@@ -24,6 +24,9 @@ models/finetuned/
 data/raw/
 data/splits/
 data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.db-journal
 *.zip
 
 # Outputs

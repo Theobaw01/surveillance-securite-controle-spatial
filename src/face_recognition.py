@@ -106,8 +106,10 @@ class FaceDatabase:
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False, timeout=30)
         self.conn.row_factory = sqlite3.Row
+        # WAL mode for concurrent read/write access
+        self.conn.execute("PRAGMA journal_mode=WAL")
         self._create_tables()
         self._run_migrations()
 
