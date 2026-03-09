@@ -278,6 +278,27 @@ export function getAttendanceAbsent() {
   }>("/attendance/absent");
 }
 
+export function getPresenceDuration(personId?: string) {
+  const qs = personId ? `?person_id=${personId}` : "";
+  return fetchAPI<{
+    records: Array<{
+      person_id: string;
+      nom: string;
+      prenom: string;
+      entry_time: string;
+      exit_time: string | null;
+      still_present: boolean;
+      duration_sec: number;
+      duration_formatted: string;
+      total_entries: number;
+      total_exits: number;
+    }>;
+    total: number;
+    total_duration_sec: number;
+    date: string;
+  }>(`/attendance/presence${qs}`);
+}
+
 export function getAttendanceStats(dateFrom?: string, dateTo?: string) {
   const params = new URLSearchParams();
   if (dateFrom) params.set("date_from", dateFrom);

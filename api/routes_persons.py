@@ -661,6 +661,28 @@ async def attendance_absent():
         raise HTTPException(500, f"Erreur : {e}")
 
 
+@router.get("/attendance/presence", tags=["Attendance"])
+async def attendance_presence(
+    person_id: Optional[str] = Query(None, description="Filtrer par personne"),
+):
+    """Durée de présence par personne aujourd'hui (entrée → sortie)."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        records = _face_db.get_presence_duration_today(person_id=person_id)
+        total_duration = sum(r["duration_sec"] for r in records)
+        return {
+            "records": records,
+            "total": len(records),
+            "total_duration_sec": round(total_duration, 1),
+            "date": time.strftime("%Y-%m-%d"),
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")
+
+
 @router.get("/attendance/stats", tags=["Attendance"])
 async def attendance_stats(
     date_from: Optional[str] = Query(None, description="Date début YYYY-MM-DD"),

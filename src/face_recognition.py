@@ -531,6 +531,92 @@ class FaceDatabase:
         )
         return [dict(row) for row in cursor.fetchall()]
 
+    def get_presence_duration_today(self, person_id: Optional[str] = None) -> List[Dict]:
+        """
+        Calcule la durée de présence par personne aujourd'hui.
+        Apparie les entrées et sorties pour chaque personne.
+
+        Returns:
+            Liste de dicts avec person_id, nom, prenom, entry_time, exit_time,
+            duration_sec, duration_formatted.
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        if person_id:
+            cursor = self.conn.execute(
+                "SELECT * FROM attendance WHERE person_id = ? AND datetime_str LIKE ? ORDER BY timestamp ASC",
+                (person_id, f"{today}%"),
+            )
+        else:
+            cursor = self.conn.execute(
+                "SELECT * FROM attendance WHERE datetime_str LIKE ? ORDER BY person_id, timestamp ASC",
+                (f"{today}%",),
+            )
+
+        rows = [dict(r) for r in cursor.fetchall()]
+
+        # Grouper par person_id
+        from collections import defaultdict
+        by_person: Dict[str, list] = defaultdict(list)
+        for r in rows:
+            by_person[r["person_id"]].append(r)
+
+        results = []
+        for pid, events in by_person.items():
+            entries = [e for e in events if e["direction"] == "entry"]
+            exits = [e for e in events if e["direction"] == "exit"]
+
+            if not entries:
+                continue
+
+            first_entry = entries[0]
+            entry_ts = first_entry["timestamp"]
+            entry_str = first_entry["datetime_str"]
+            nom = first_entry.get("nom", "")
+            prenom = first_entry.get("prenom", "")
+
+            # Dernière sortie ou maintenant
+            if exits:
+                last_exit = exits[-1]
+                exit_ts = last_exit["timestamp"]
+                exit_str = last_exit["datetime_str"]
+                still_present = False
+            else:
+                exit_ts = time.time()
+                exit_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                still_present = True
+
+            duration_sec = max(0, exit_ts - entry_ts)
+
+            # Formater durée
+            h = int(duration_sec // 3600)
+            m = int((duration_sec % 3600) // 60)
+            s = int(duration_sec % 60)
+            parts = []
+            if h > 0:
+                parts.append(f"{h}h")
+            if m > 0:
+                parts.append(f"{m}min")
+            if s > 0 or not parts:
+                parts.append(f"{s}s")
+            duration_fmt = " ".join(parts)
+
+            results.append({
+                "person_id": pid,
+                "nom": nom,
+                "prenom": prenom,
+                "entry_time": entry_str,
+                "exit_time": exit_str if not still_present else None,
+                "still_present": still_present,
+                "duration_sec": round(duration_sec, 1),
+                "duration_formatted": duration_fmt,
+                "total_entries": len(entries),
+                "total_exits": len(exits),
+            })
+
+        # Trier par durée décroissante
+        results.sort(key=lambda x: x["duration_sec"], reverse=True)
+        return results
+
     def get_attendance_stats(
         self, date_from: str = None, date_to: str = None
     ) -> Dict:

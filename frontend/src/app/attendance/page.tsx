@@ -18,15 +18,30 @@ import {
   getAttendanceLate,
   getAttendanceAbsent,
   getAttendanceStats,
+  getPresenceDuration,
 } from "@/lib/api";
 
 type AttendanceRecord = Record<string, unknown>;
+type PresenceRecord = {
+  person_id: string;
+  nom: string;
+  prenom: string;
+  entry_time: string;
+  exit_time: string | null;
+  still_present: boolean;
+  duration_sec: number;
+  duration_formatted: string;
+  total_entries: number;
+  total_exits: number;
+};
 
 export default function AttendancePage() {
-  const [tab, setTab] = useState<"today" | "late" | "absent" | "stats">(
-    "today"
+  const [tab, setTab] = useState<"duration" | "today" | "late" | "absent" | "stats">(
+    "duration"
   );
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [presenceRecords, setPresenceRecords] = useState<PresenceRecord[]>([]);
+  const [totalDurationSec, setTotalDurationSec] = useState(0);
   const [stats, setStats] = useState<{
     total_inscrits: number;
     total_present: number;
@@ -43,7 +58,11 @@ export default function AttendancePage() {
     setLoading(true);
     setError("");
     try {
-      if (tab === "today") {
+      if (tab === "duration") {
+        const res = await getPresenceDuration();
+        setPresenceRecords(res.records);
+        setTotalDurationSec(res.total_duration_sec);
+      } else if (tab === "today") {
         const res = await getAttendanceToday();
         setRecords(res.records);
       } else if (tab === "late") {
@@ -68,7 +87,8 @@ export default function AttendancePage() {
   }, [loadData]);
 
   const tabs = [
-    { key: "today" as const, label: "Aujourd'hui", icon: CalendarDays },
+    { key: "duration" as const, label: "Durée de présence", icon: Clock },
+    { key: "today" as const, label: "Pointages", icon: CalendarDays },
     { key: "late" as const, label: "Retards", icon: AlertTriangle },
     { key: "absent" as const, label: "Absents", icon: UserX },
     { key: "stats" as const, label: "Statistiques", icon: TrendingUp },
@@ -127,6 +147,8 @@ export default function AttendancePage() {
           <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
           <span className="ml-2 text-sm text-gray-400">Chargement...</span>
         </div>
+      ) : tab === "duration" ? (
+        <PresenceDurationView records={presenceRecords} totalDuration={totalDurationSec} />
       ) : tab === "stats" ? (
         stats && <StatsView stats={stats} />
       ) : tab === "absent" ? (
@@ -136,6 +158,136 @@ export default function AttendancePage() {
       )}
     </div>
   );
+}
+
+/* ── Presence Duration View ── */
+function PresenceDurationView({
+  records,
+  totalDuration,
+}: {
+  records: PresenceRecord[];
+  totalDuration: number;
+}) {
+  if (records.length === 0) {
+    return (
+      <div className="bg-surface-card border border-surface-border rounded-xl p-12 text-center">
+        <Clock className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+        <p className="text-sm text-gray-500">
+          Aucune donnée de présence aujourd&apos;hui
+        </p>
+        <p className="text-xs text-gray-600 mt-1">
+          Uploadez une vidéo dans l&apos;onglet Détection pour calculer les
+          durées de présence
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-surface-card border border-surface-border rounded-xl p-5">
+          <Users className="w-5 h-5 text-blue-400 mb-2" />
+          <p className="text-2xl font-bold text-white">{records.length}</p>
+          <p className="text-xs text-gray-400 mt-1">Personnes présentes</p>
+        </div>
+        <div className="bg-surface-card border border-surface-border rounded-xl p-5">
+          <Clock className="w-5 h-5 text-brand-400 mb-2" />
+          <p className="text-2xl font-bold text-brand-300">
+            {_fmtDuration(totalDuration)}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Durée totale cumulée</p>
+        </div>
+        <div className="bg-surface-card border border-surface-border rounded-xl p-5">
+          <Clock className="w-5 h-5 text-green-400 mb-2" />
+          <p className="text-2xl font-bold text-green-300">
+            {records.length > 0
+              ? _fmtDuration(totalDuration / records.length)
+              : "—"}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Durée moyenne</p>
+        </div>
+      </div>
+
+      {/* Presence cards */}
+      <div className="space-y-3">
+        {records.map((r) => {
+          const pct =
+            totalDuration > 0
+              ? Math.round((r.duration_sec / totalDuration) * 100)
+              : 0;
+
+          return (
+            <div
+              key={r.person_id}
+              className="bg-surface-card border border-surface-border rounded-xl p-4"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-600/20 flex items-center justify-center">
+                    <span className="text-sm font-bold text-brand-300">
+                      {(r.prenom?.[0] || "").toUpperCase()}
+                      {(r.nom?.[0] || "").toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {r.prenom} {r.nom}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {r.total_entries} entrée(s) · {r.total_exits} sortie(s)
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-brand-300">
+                    {r.duration_formatted}
+                  </p>
+                  {r.still_present && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">
+                      Encore présent
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-2 bg-surface rounded-full overflow-hidden mb-2">
+                <div
+                  className="h-full bg-brand-500 rounded-full transition-all"
+                  style={{ width: `${Math.min(pct, 100)}%` }}
+                />
+              </div>
+
+              <div className="flex justify-between text-[11px] text-gray-500">
+                <span>
+                  Entrée : {r.entry_time?.split(" ")[1] || r.entry_time}
+                </span>
+                <span>
+                  {r.exit_time
+                    ? `Sortie : ${r.exit_time.split(" ")[1] || r.exit_time}`
+                    : "En cours…"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function _fmtDuration(sec: number): string {
+  if (sec <= 0) return "0s";
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}min`);
+  if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+  return parts.join(" ");
 }
 
 /* ── Stats View ── */
