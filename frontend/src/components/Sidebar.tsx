@@ -9,6 +9,7 @@ import {
   FileBarChart,
   Image as ImageIcon,
   Shield,
+  Clock,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -17,6 +18,7 @@ const NAV = [
   { href: "/cameras", label: "Caméras", icon: Camera },
   { href: "/persons", label: "Personnes", icon: Users },
   { href: "/detect", label: "Détection", icon: ImageIcon },
+  { href: "/attendance", label: "Présence", icon: Clock },
   { href: "/reports", label: "Rapports", icon: FileBarChart },
 ];
 

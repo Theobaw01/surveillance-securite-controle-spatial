@@ -1,11 +1,16 @@
 """
 ═══════════════════════════════════════════════════════════════
-API Routes — Gestion des Personnes & Analyse d'Images
+API Routes — Gestion des Personnes, Détection & Présence
 ═══════════════════════════════════════════════════════════════
-- POST /persons/register      → Enregistrer une personne (photo + infos)
-- GET  /persons               → Lister les personnes
+- POST /persons/register       → Enregistrer une personne (photo + infos)
+- GET  /persons                → Lister les personnes
 - DELETE /persons/{person_id}  → Supprimer une personne
-- POST /detect/image          → Analyser une image uploadée
+- POST /detect/image           → Analyser une image uploadée
+- POST /detect/video           → Analyser une vidéo uploadée (présence)
+- GET  /attendance/today       → Pointages du jour
+- GET  /attendance/late        → Retards du jour
+- GET  /attendance/absent      → Absents du jour
+- GET  /attendance/stats       → Statistiques de présence
 ═══════════════════════════════════════════════════════════════
 """
 
@@ -14,11 +19,13 @@ import time
 import uuid
 import logging
 import base64
+import tempfile
 from typing import Optional
+from collections import defaultdict
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -341,3 +348,333 @@ def _load_persons_json():
         with open(_JSON_DB) as f:
             return json.load(f)
     return []
+
+
+# ═══════════════════════════════════════════════════════════════
+# ROUTE DÉTECTION VIDÉO + SUIVI DE PRÉSENCE
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/detect/video", tags=["Detection"])
+async def detect_video(
+    video: UploadFile = File(...),
+    conf_threshold: float = Form(0.3),
+    frame_skip: int = Form(10),
+):
+    """
+    Analyse une vidéo uploadée frame par frame.
+
+    - Détecte les personnes (YOLO) et identifie les visages (InsightFace)
+    - Calcule le temps de présence de chaque personne identifiée
+    - Enregistre les pointages (entrée/sortie) dans la base
+
+    Args:
+        video: Fichier vidéo (mp4, avi, etc.)
+        conf_threshold: Seuil de confiance YOLO (0-1)
+        frame_skip: Ne traiter qu'une frame sur N (performance)
+
+    Returns:
+        Résumé avec temps de présence par personne
+    """
+    try:
+        init_components()
+    except Exception as e:
+        logger.warning(f"init_components error: {e}")
+
+    if not _model:
+        raise HTTPException(503, "Modèle YOLO non disponible")
+
+    # Sauvegarder la vidéo temporairement
+    suffix = os.path.splitext(video.filename or "video.mp4")[1] or ".mp4"
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await video.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+    except Exception as e:
+        raise HTTPException(400, f"Erreur lecture vidéo : {e}")
+
+    try:
+        cap = cv2.VideoCapture(tmp_path)
+        if not cap.isOpened():
+            raise HTTPException(400, "Impossible d'ouvrir la vidéo")
+
+        fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration_sec = total_frames / fps if fps > 0 else 0
+
+        logger.info(
+            f"📹 Analyse vidéo : {video.filename} | "
+            f"{total_frames} frames | {fps:.1f} FPS | {duration_sec:.1f}s | "
+            f"skip={frame_skip}"
+        )
+
+        t0 = time.time()
+
+        # Tracking de présence par personne
+        # person_id -> { "nom", "prenom", "first_frame", "last_frame",
+        #                 "first_time_sec", "last_time_sec", "detections_count",
+        #                 "similarities": [], "best_snapshot": base64 }
+        presence: dict = defaultdict(lambda: {
+            "nom": "", "prenom": "", "person_id": "",
+            "first_frame": float("inf"), "last_frame": 0,
+            "first_time_sec": 0.0, "last_time_sec": 0.0,
+            "detections_count": 0, "similarities": [],
+            "best_snapshot": None, "best_similarity": 0.0,
+        })
+
+        # Aussi compter les inconnus
+        unknown_count = 0
+        frames_processed = 0
+        total_detections = 0
+        annotated_keyframe = None
+        keyframe_detections = 0
+
+        frame_idx = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            if frame_idx % frame_skip != 0:
+                frame_idx += 1
+                continue
+
+            current_time_sec = frame_idx / fps if fps > 0 else 0
+            frames_processed += 1
+
+            try:
+                results = _model.predict(
+                    frame, conf=conf_threshold, classes=[0], verbose=False
+                )[0]
+
+                frame_det_count = 0
+                for box in results.boxes:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    conf = float(box.conf[0])
+                    total_detections += 1
+                    frame_det_count += 1
+
+                    identified = False
+
+                    if _face_app:
+                        try:
+                            crop = frame[max(0, y1):y2, max(0, x1):x2]
+                            if crop.size > 0:
+                                faces = _face_app.get(crop)
+                                if faces:
+                                    face = max(faces, key=lambda f: f.det_score)
+                                    emb = face.embedding / np.linalg.norm(face.embedding)
+
+                                    if _face_db:
+                                        identity = _face_db.identify(emb, threshold=0.35)
+                                        if identity:
+                                            pid = identity["person_id"]
+                                            p = presence[pid]
+                                            p["person_id"] = pid
+                                            p["nom"] = identity["nom"]
+                                            p["prenom"] = identity["prenom"]
+                                            p["first_frame"] = min(p["first_frame"], frame_idx)
+                                            p["last_frame"] = max(p["last_frame"], frame_idx)
+                                            p["first_time_sec"] = p["first_frame"] / fps if fps > 0 else 0
+                                            p["last_time_sec"] = p["last_frame"] / fps if fps > 0 else 0
+                                            p["detections_count"] += 1
+                                            p["similarities"].append(identity["similarity"])
+
+                                            # Garder le meilleur snapshot
+                                            if identity["similarity"] > p["best_similarity"]:
+                                                p["best_similarity"] = identity["similarity"]
+                                                face_crop = frame[max(0, y1-20):min(frame.shape[0], y2+20),
+                                                                   max(0, x1-20):min(frame.shape[1], x2+20)]
+                                                if face_crop.size > 0:
+                                                    p["best_snapshot"] = _encode_frame_base64(face_crop)
+
+                                            identified = True
+                        except Exception as face_err:
+                            logger.debug(f"Face error frame {frame_idx}: {face_err}")
+
+                    if not identified:
+                        unknown_count += 1
+
+                # Garder la frame avec le plus de détections comme keyframe
+                if frame_det_count > keyframe_detections:
+                    keyframe_detections = frame_det_count
+                    # Annoter la keyframe
+                    annotated = frame.copy()
+                    for box in results.boxes:
+                        bx1, by1, bx2, by2 = map(int, box.xyxy[0])
+                        cv2.rectangle(annotated, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
+                    annotated_keyframe = _encode_frame_base64(annotated)
+
+            except Exception as e:
+                logger.debug(f"Frame {frame_idx} error: {e}")
+
+            frame_idx += 1
+
+        cap.release()
+        elapsed_ms = (time.time() - t0) * 1000
+
+        # Construire le résumé de présence
+        presence_summary = []
+        for pid, p in presence.items():
+            if p["detections_count"] == 0:
+                continue
+
+            duration = p["last_time_sec"] - p["first_time_sec"]
+            avg_sim = sum(p["similarities"]) / len(p["similarities"]) if p["similarities"] else 0
+
+            presence_summary.append({
+                "person_id": pid,
+                "nom": p["nom"],
+                "prenom": p["prenom"],
+                "name": f"{p['prenom']} {p['nom']}",
+                "first_seen_sec": round(p["first_time_sec"], 1),
+                "last_seen_sec": round(p["last_time_sec"], 1),
+                "duration_sec": round(duration, 1),
+                "duration_formatted": _format_duration(duration),
+                "detections_count": p["detections_count"],
+                "avg_similarity": round(avg_sim, 3),
+                "best_similarity": round(p["best_similarity"], 3),
+                "snapshot": p["best_snapshot"],
+            })
+
+            # Enregistrer le pointage dans la base
+            if _face_db:
+                try:
+                    _face_db.record_attendance(
+                        person_id=pid,
+                        direction="entry",
+                        similarity=avg_sim,
+                        camera_id="video_upload",
+                    )
+                    if duration > 0:
+                        _face_db.record_attendance(
+                            person_id=pid,
+                            direction="exit",
+                            similarity=avg_sim,
+                            camera_id="video_upload",
+                        )
+                except Exception as att_err:
+                    logger.warning(f"Attendance record error for {pid}: {att_err}")
+
+        # Trier par durée décroissante
+        presence_summary.sort(key=lambda x: x["duration_sec"], reverse=True)
+
+        logger.info(
+            f"✅ Vidéo traitée : {frames_processed} frames | "
+            f"{len(presence_summary)} personnes identifiées | "
+            f"{unknown_count} détections inconnues | {elapsed_ms:.0f}ms"
+        )
+
+        return {
+            "video_info": {
+                "filename": video.filename,
+                "fps": round(fps, 1),
+                "total_frames": total_frames,
+                "duration_sec": round(duration_sec, 1),
+                "duration_formatted": _format_duration(duration_sec),
+                "frames_processed": frames_processed,
+                "frame_skip": frame_skip,
+            },
+            "presence": presence_summary,
+            "total_persons_identified": len(presence_summary),
+            "total_detections": total_detections,
+            "unknown_detections": unknown_count,
+            "processing_ms": round(elapsed_ms, 1),
+            "annotated_keyframe": annotated_keyframe,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Video detection error: {e}", exc_info=True)
+        raise HTTPException(500, f"Erreur analyse vidéo : {e}")
+    finally:
+        # Nettoyer le fichier temporaire
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+
+def _format_duration(seconds: float) -> str:
+    """Formate une durée en secondes en HH:MM:SS lisible."""
+    if seconds <= 0:
+        return "0s"
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = int(seconds % 60)
+    parts = []
+    if h > 0:
+        parts.append(f"{h}h")
+    if m > 0:
+        parts.append(f"{m}min")
+    if s > 0 or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)
+
+
+# ═══════════════════════════════════════════════════════════════
+# ROUTES PRÉSENCE / POINTAGE
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/attendance/today", tags=["Attendance"])
+async def attendance_today(
+    person_id: Optional[str] = Query(None, description="Filtrer par personne"),
+):
+    """Retourne les pointages du jour (tous ou pour une personne)."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        records = _face_db.get_attendance_today(person_id=person_id)
+        return {"records": records, "total": len(records), "date": time.strftime("%Y-%m-%d")}
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")
+
+
+@router.get("/attendance/late", tags=["Attendance"])
+async def attendance_late():
+    """Retourne les retards du jour."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        records = _face_db.get_late_today()
+        return {"records": records, "total": len(records), "date": time.strftime("%Y-%m-%d")}
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")
+
+
+@router.get("/attendance/absent", tags=["Attendance"])
+async def attendance_absent():
+    """Retourne les personnes absentes aujourd'hui."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        records = _face_db.get_absent_today()
+        return {"records": records, "total": len(records), "date": time.strftime("%Y-%m-%d")}
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")
+
+
+@router.get("/attendance/stats", tags=["Attendance"])
+async def attendance_stats(
+    date_from: Optional[str] = Query(None, description="Date début YYYY-MM-DD"),
+    date_to: Optional[str] = Query(None, description="Date fin YYYY-MM-DD"),
+):
+    """Statistiques de présence sur une période."""
+    init_components()
+    if not _face_db:
+        raise HTTPException(503, "Base de données non disponible")
+
+    try:
+        stats = _face_db.get_attendance_stats(
+            date_from=date_from, date_to=date_to
+        )
+        return stats
+    except Exception as e:
+        raise HTTPException(500, f"Erreur : {e}")

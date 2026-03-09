@@ -208,3 +208,90 @@ export async function detectImage(image: File, confThreshold = 0.3) {
     annotated_image: string;
   }>("/detect/image", { method: "POST", body: form });
 }
+
+// ── Video Detection ──────────────────────────────────
+export async function detectVideo(
+  video: File,
+  confThreshold = 0.3,
+  frameSkip = 10
+) {
+  const form = new FormData();
+  form.append("video", video);
+  form.append("conf_threshold", confThreshold.toString());
+  form.append("frame_skip", frameSkip.toString());
+
+  return fetchAPI<{
+    video_info: {
+      filename: string;
+      fps: number;
+      total_frames: number;
+      duration_sec: number;
+      duration_formatted: string;
+      frames_processed: number;
+      frame_skip: number;
+    };
+    presence: Array<{
+      person_id: string;
+      nom: string;
+      prenom: string;
+      name: string;
+      first_seen_sec: number;
+      last_seen_sec: number;
+      duration_sec: number;
+      duration_formatted: string;
+      detections_count: number;
+      avg_similarity: number;
+      best_similarity: number;
+      snapshot: string | null;
+    }>;
+    total_persons_identified: number;
+    total_detections: number;
+    unknown_detections: number;
+    processing_ms: number;
+    annotated_keyframe: string | null;
+  }>("/detect/video", { method: "POST", body: form });
+}
+
+// ── Attendance / Présence ────────────────────────────
+export function getAttendanceToday(personId?: string) {
+  const qs = personId ? `?person_id=${personId}` : "";
+  return fetchAPI<{
+    records: Array<Record<string, unknown>>;
+    total: number;
+    date: string;
+  }>(`/attendance/today${qs}`);
+}
+
+export function getAttendanceLate() {
+  return fetchAPI<{
+    records: Array<Record<string, unknown>>;
+    total: number;
+    date: string;
+  }>("/attendance/late");
+}
+
+export function getAttendanceAbsent() {
+  return fetchAPI<{
+    records: Array<Record<string, unknown>>;
+    total: number;
+    date: string;
+  }>("/attendance/absent");
+}
+
+export function getAttendanceStats(dateFrom?: string, dateTo?: string) {
+  const params = new URLSearchParams();
+  if (dateFrom) params.set("date_from", dateFrom);
+  if (dateTo) params.set("date_to", dateTo);
+  const qs = params.toString() ? `?${params}` : "";
+  return fetchAPI<{
+    date_from: string;
+    date_to: string;
+    total_inscrits: number;
+    total_present: number;
+    total_absent: number;
+    total_retards: number;
+    retard_moyen_min: number;
+    retard_max_min: number;
+    taux_presence: number;
+  }>(`/attendance/stats${qs}`);
+}
