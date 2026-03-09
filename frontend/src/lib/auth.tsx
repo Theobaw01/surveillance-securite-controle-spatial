@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { login, logout, isAuthenticated } from "@/lib/api";
+import { logout } from "@/lib/api";
 
 interface AuthContextType {
   ready: boolean;
@@ -40,11 +40,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout();
 
       try {
-        await login("admin", "admin_surv_2024");
-        setLoggedIn(true);
-      } catch (err) {
-        console.warn("Auto-login failed:", err);
-        setError("Auto-login échoué");
+        // Timeout after 5s to prevent UI hanging forever
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001"}/auth/token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: "admin", password: "admin_surv_2024" }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem("surv_token", data.access_token);
+          setLoggedIn(true);
+        } else {
+          console.warn("Auto-login HTTP error:", res.status);
+          setError(`Login échoué (${res.status})`);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("Auto-login failed:", msg);
+        setError("API inaccessible");
       } finally {
         setReady(true);
       }
