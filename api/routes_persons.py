@@ -253,14 +253,24 @@ async def detect_image(
                     person_crop = img[max(0, y1):y2, max(0, x1):x2]
                     if person_crop.size > 0:
                         faces = _face_app.get(person_crop)
-                        if faces and _face_db:
+                        if faces:
                             face = max(faces, key=lambda f: f.det_score)
                             embedding = face.embedding / np.linalg.norm(face.embedding)
-                            identity = _face_db.identify(embedding)
-                            if identity:
-                                person_info["name"] = f"{identity['prenom']} {identity['nom']}"
-                                person_info["similarity"] = round(identity["similarity"], 3)
-                                person_info["person_id"] = identity["person_id"]
+                            logger.info(f"  🔍 Visage détecté (score={face.det_score:.2f}), recherche dans la base...")
+
+                            if _face_db:
+                                identity = _face_db.identify(embedding, threshold=0.35)
+                                if identity:
+                                    person_info["name"] = f"{identity['prenom']} {identity['nom']}"
+                                    person_info["similarity"] = round(identity["similarity"], 3)
+                                    person_info["person_id"] = identity["person_id"]
+                                    logger.info(f"  ✅ Identifié : {person_info['name']} (sim={identity['similarity']:.3f})")
+                                else:
+                                    logger.info(f"  ❌ Aucune correspondance trouvée (seuil=0.35)")
+                            else:
+                                logger.warning("  ⚠️ FaceDatabase non disponible pour l'identification")
+                        else:
+                            logger.info("  ℹ️ Aucun visage détecté dans le crop")
                 except Exception as face_err:
                     logger.warning(f"Face recognition error: {face_err}")
 

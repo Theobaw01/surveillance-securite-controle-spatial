@@ -567,6 +567,60 @@ class FaceDatabase:
             ),
         }
 
+    def identify(
+        self,
+        embedding: np.ndarray,
+        threshold: float = 0.4,
+    ) -> Optional[Dict]:
+        """
+        Identifie une personne à partir d'un embedding facial.
+
+        Compare l'embedding fourni avec tous les embeddings connus
+        via similarité cosinus. Retourne la meilleure correspondance
+        si elle dépasse le seuil.
+
+        Args:
+            embedding: Vecteur facial 512D normalisé.
+            threshold: Seuil de similarité cosinus (0.0-1.0).
+
+        Returns:
+            Dict avec person_id, nom, prenom, similarity ou None.
+        """
+        if not self._embeddings_cache:
+            return None
+
+        query = embedding.astype(np.float32).flatten()
+        norm = np.linalg.norm(query)
+        if norm > 0:
+            query = query / norm
+
+        best_id = None
+        best_sim = -1.0
+
+        for person_id, emb_list in self._embeddings_cache.items():
+            for known_emb in emb_list:
+                known = known_emb.astype(np.float32).flatten()
+                norm_k = np.linalg.norm(known)
+                if norm_k > 0:
+                    known = known / norm_k
+                sim = float(np.dot(query, known))
+                if sim > best_sim:
+                    best_sim = sim
+                    best_id = person_id
+
+        if best_sim >= threshold and best_id is not None:
+            person = self._persons_cache.get(best_id, {})
+            return {
+                "person_id": best_id,
+                "nom": person.get("nom", ""),
+                "prenom": person.get("prenom", ""),
+                "groupe": person.get("groupe", ""),
+                "role": person.get("role", "visiteur"),
+                "similarity": best_sim,
+            }
+
+        return None
+
     def close(self):
         """Ferme la connexion."""
         self.conn.close()
