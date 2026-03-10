@@ -19,9 +19,9 @@ module.exports = {
         },
         surface: {
           DEFAULT: "#000000",
-          card: "#0a0a0a",
-          hover: "#111111",
-          border: "#1a1a1a",
+          card: "#111111",
+          hover: "#1a1a1a",
+          border: "#252525",
         },
         success: "#22c55e",
         warning: "#f59e0b",
@@ -33,8 +33,8 @@ module.exports = {
       },
       boxShadow: {
         glow: "0 0 20px -6px rgba(99, 102, 241, 0.3)",
-        card: "0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3)",
-        "card-hover": "0 4px 16px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3)",
+        card: "0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+        "card-hover": "0 4px 16px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.06)",
       },
     },
   },

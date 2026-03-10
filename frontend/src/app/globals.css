@@ -4,10 +4,10 @@
 
 :root {
   --bg: #000000;
-  --card: #0a0a0a;
-  --card-elevated: #111111;
-  --border: #1a1a1a;
-  --border-light: #222222;
+  --card: #111111;
+  --card-elevated: #1a1a1a;
+  --border: #252525;
+  --border-light: #2e2e2e;
 }
 
 body {
@@ -65,10 +65,10 @@ body {
 /* Glass card */
 .glass-card {
   @apply relative overflow-hidden;
-  background: rgba(10, 10, 10, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(17, 17, 17, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(12px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.03);
 }
 
 .glass-card::before {
@@ -84,15 +84,15 @@ body {
 .input-field {
   @apply w-full rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500
     focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200;
-  background: #111111;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .input-field:hover {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .input-field:focus {
   border-color: rgba(99, 102, 241, 0.5);
-  background: #0a0a0a;
+  background: #111111;
 }
 
 /* Custom range slider */

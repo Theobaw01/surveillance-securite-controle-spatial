@@ -81,7 +81,7 @@ export default function StatsCards(props: Props) {
       {cards.map(({ key, label, icon: Icon, color, bg }) => (
         <div
           key={key}
-          className="bg-surface-card border border-surface-border rounded-xl p-4 animate-fade-in"
+          className="bg-surface-card border border-surface-border rounded-xl p-4 shadow-card hover:shadow-card-hover transition-shadow duration-200 animate-fade-in"
         >
           <div className="flex items-center gap-2 mb-2">
             <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", bg)}>
